@@ -1,10 +1,12 @@
 #include <iostream>
+#include <cuda_runtime.h>
 #include "embedding.h"
 #include "positional_encoding.h"
 #include "layer_norm.h"
 #include "residual_connection.h"
 #include "feed_forward.h"
 #include "softmax.cuh"
+#include "multi_head_attention.cuh"
 
 void init_input_embedding(){
     InputEmbedding embed(30522, 512);
@@ -126,15 +128,49 @@ torch::Tensor softmax_cuda(torch::Tensor input) {
     return output;
 }
 
+void init_multihead_attention() {
+    const int B = 2;
+    const int S = 128;
+    const int H = 8;
+    const int D = 64;
+
+    auto options = torch::TensorOptions().dtype(torch::kFloat32).device(torch::kCUDA);
+    torch::manual_seed(42);
+
+    auto Q = torch::randn({B, S, H * D}, options);
+    auto K = torch::randn({B, S, H * D}, options);
+    auto V = torch::randn({B, S, H * D}, options);
+
+    // Zaman ölçümü
+    cudaEvent_t start, stop;
+    cudaEventCreate(&start);
+    cudaEventCreate(&stop);
+    cudaEventRecord(start);
+
+    auto output = multi_head_attention_cuda(Q, K, V, B, H, S, D);
+
+    cudaEventRecord(stop);
+    cudaEventSynchronize(stop);
+
+    float ms = 0.0f;
+    cudaEventElapsedTime(&ms, start, stop);
+    std::cout << "Multi-head attention time: " << ms << " ms\n";
+
+    std::cout << "Output shape: " << output.sizes() << "\n";
+    std::cout << "First output token: \n" << output[0][0] << "\n";
+}
+
 int main() {
     auto input = torch::randn({128, 256}, torch::TensorOptions().dtype(torch::kFloat32).device(torch::kCUDA));
 
     //init_input_embedding();
     //init_pos_enc();
-    //tensor_ops();
     //init_layernorm();
     //init_residual();
     //init_ffn();
-    auto result = softmax_cuda(input);
-    std::cout << result << "\n";
+    //auto result = softmax_cuda(input);
+    //std::cout << result << "\n";
+    init_multihead_attention();
+    
+    return 0;
 }
