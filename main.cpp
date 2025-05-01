@@ -157,7 +157,7 @@ void init_multihead_attention() {
     std::cout << "Multi-head attention time: " << ms << " ms\n";
 
     std::cout << "Output shape: " << output.sizes() << "\n";
-    std::cout << "First output token: \n" << output[0][0] << "\n";
+    //std::cout << "First output token: \n" << output[0][0] << "\n";
 }
 
 int main() {
@@ -170,7 +170,7 @@ int main() {
     //init_ffn();
     //auto result = softmax_cuda(input);
     //std::cout << result << "\n";
-    init_multihead_attention();
+    //init_multihead_attention();
     
     return 0;
 }
