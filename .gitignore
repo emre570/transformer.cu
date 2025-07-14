@@ -1,4 +1,6 @@
+/.vscode
 /build
+/libtorch
 
 # Prerequisites
 *.d

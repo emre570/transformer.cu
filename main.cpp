@@ -161,6 +161,7 @@ void init_multihead_attention() {
 }
 
 int main() {
+    torch::manual_seed(0);
     auto input = torch::randn({128, 256}, torch::TensorOptions().dtype(torch::kFloat32).device(torch::kCUDA));
 
     //init_input_embedding();
@@ -170,7 +171,7 @@ int main() {
     //init_ffn();
     //auto result = softmax_cuda(input);
     //std::cout << result << "\n";
-    //init_multihead_attention();
+    init_multihead_attention();
     
     return 0;
 }
