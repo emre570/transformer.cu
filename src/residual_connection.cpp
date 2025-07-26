@@ -1,16 +1,18 @@
+#include <torch/torch.h>
+#include "layer_norm.h"
 #include "residual_connection.h"
 
-ResidualConnectionImpl::ResidualConnectionImpl(float dropout_p)
-    : norm(/*eps=*/1e-6), dropout(torch::nn::DropoutOptions(dropout_p)) {
-
+ResidualConnectionImpl::ResidualConnectionImpl(int d_model, float dropout_p)
+    : norm(d_model),
+      dropout(torch::nn::DropoutOptions(dropout_p))
+{
     register_module("norm", norm);
     register_module("dropout", dropout);
 }
 
 torch::Tensor ResidualConnectionImpl::forward(torch::Tensor x, std::function<torch::Tensor(torch::Tensor)> sublayer) {
-    auto norm_x = norm->forward(x);
-    auto sublayer_out = sublayer(norm_x);
-    auto dropped = dropout(sublayer_out);
-
-    return x + dropped;
+    auto normed = norm->forward(x);
+    auto out = sublayer(normed);
+    out = dropout(out);
+    return x + out;
 }

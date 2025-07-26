@@ -1,4 +1,5 @@
 #include <iostream>
+#include <torch/torch.h>
 #include <cuda_runtime.h>
 #include "embedding.h"
 #include "positional_encoding.h"
@@ -7,6 +8,8 @@
 #include "feed_forward.h"
 #include "softmax.cuh"
 #include "multi_head_attention.cuh"
+#include "encoder.h"
+#include "encoder_block.h"
 
 void init_input_embedding(){
     InputEmbedding embed(30522, 512);
@@ -19,7 +22,7 @@ void init_input_embedding(){
 
 void init_pos_enc(){
     auto pos_enc = PositionalEncoding(512, 0.1, 2048);
-    pos_enc->to(torch::kCUDA);  // ✅ BU GERÇEKTEN TAŞIR
+    pos_enc->to(torch::kCUDA);
 
     auto dummy_input = torch::randn({1, 128, 512}).to(torch::kCUDA);
     auto out = pos_enc->forward(dummy_input);
@@ -160,6 +163,42 @@ void init_multihead_attention() {
     //std::cout << "First output token: \n" << output[0][0] << "\n";
 }
 
+void Encoders(){
+    torch::manual_seed(0);
+
+    // 🔢 Dummy input
+    int batch_size = 2;
+    int seq_len = 4;
+    int d_model = 32;
+    int n_heads = 4;
+    int d_ff = 64;
+    float dropout = 0.1;
+
+    torch::Tensor x = torch::randn({batch_size, seq_len, d_model});
+    torch::Tensor mask = torch::ones({batch_size, seq_len});  // şimdilik gereksiz ama format otursun
+
+    std::cout << "[Input size] " << x.sizes() << std::endl;
+
+    // 🔹 1. Tek bir EncoderBlock denemesi
+    EncoderBlock block(d_model, n_heads, d_ff, dropout);
+    torch::Tensor out_block = block->forward(x, mask);
+    std::cout << "[EncoderBlock output] " << out_block.sizes() << std::endl;
+
+    // 🔹 2. Encoder (birden fazla blok)
+    int num_layers = 3;
+    torch::nn::ModuleList blocks;
+
+    for (int i = 0; i < num_layers; ++i) {
+        blocks->push_back(EncoderBlock(d_model, n_heads, d_ff, dropout));
+    }
+
+    Encoder encoder;
+    encoder = Encoder(num_layers, d_model);  // Alternatif: encoder = Encoder(blocks); → eğer constructor overload ettiysen
+
+    torch::Tensor out_encoder = encoder->forward(x, mask);
+    std::cout << "[Encoder output] " << out_encoder.sizes() << std::endl;
+}
+
 int main() {
     torch::manual_seed(0);
     auto input = torch::randn({128, 256}, torch::TensorOptions().dtype(torch::kFloat32).device(torch::kCUDA));
@@ -171,7 +210,8 @@ int main() {
     //init_ffn();
     //auto result = softmax_cuda(input);
     //std::cout << result << "\n";
-    init_multihead_attention();
+    //init_multihead_attention();
+    Encoders();
     
     return 0;
 }

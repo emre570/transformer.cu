@@ -1,6 +1,9 @@
 cmake_minimum_required(VERSION 3.18 FATAL_ERROR)
 project(torch_test LANGUAGES CXX CUDA)
 
+set(CMAKE_C_COMPILER /usr/bin/gcc-11)
+set(CMAKE_CXX_COMPILER /usr/bin/g++-11)
+
 # point directly to your libtorch folder
 set(Torch_DIR "${CMAKE_SOURCE_DIR}/libtorch/share/cmake/Torch")
 find_package(Torch REQUIRED)

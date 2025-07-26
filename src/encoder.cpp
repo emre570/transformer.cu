@@ -1,22 +1,23 @@
-// // encoder.cpp
-// #include "encoder.h"
+// encoder.cpp
 
-// EncoderImpl::EncoderImpl(int num_layers, int d_model, int n_heads, int d_ff, float dropout)
-//     : norm(1e-6f)
-// {
-//     for (int i = 0; i < num_layers; ++i) {
-//         auto block = EncoderBlock(d_model, n_heads, d_ff, dropout);
-//         layers.push_back(block);
-//         register_module("encoder_block_" + std::to_string(i), block);
-//     }
+#include "encoder.h"
+#include "encoder_block.h"
 
-//     register_module("norm", norm);
-// }
+EncoderImpl::EncoderImpl(int num_layers, int embed_dim){
+    //Fill layers inside ModuleList
+    layers = register_module("layers", torch::nn::ModuleList());
 
-// torch::Tensor EncoderImpl::forward(torch::Tensor x, torch::Tensor mask) {
-//     for (auto& layer : layers) {
-//         x = layer->forward(x, mask);
-//     }
+    for (int i = 0; i < num_layers; ++i){
+        layers->push_back(register_module("layer_" + std::to_string(i), EncoderBlock(embed_dim)));
+    }
+    
+    norm = register_module("norm", torch::nn::LayerNorm(torch::nn::LayerNormOptions({embed_dim})));
+}
 
-//     return norm->forward(x);
-// }
+torch::Tensor EncoderImpl::forward(torch::Tensor x, torch::Tensor mask){
+    for (auto& layer : *layers) {
+        auto encoder_block = std::dynamic_pointer_cast<EncoderBlockImpl>(layer);
+        x = encoder_block->forward(x, mask);
+    }
+    return norm(x);
+}
